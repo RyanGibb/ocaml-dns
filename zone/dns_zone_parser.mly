@@ -119,7 +119,6 @@ rrline:
 rrclass:
    CLASS_IN {}
  | CLASS_CS { parse_error "class must be \"IN\"" }
- | CLASS_CH { parse_error "class must be \"IN\"" }
  | CLASS_HS { parse_error "class must be \"IN\"" }
 
 rr:
@@ -189,22 +188,23 @@ generic_type s generic_rdata {
        with
        | Invalid_argument err -> parse_error err
      }
- | TYPE_DNSKEY s int16 s int8 s int8 s charstring
+ | TYPE_DNSKEY s int16 s int8 s int8 s charstrings
      { if not ($5 = 3) then
          parse_error ("DNSKEY protocol is not 3, but " ^ string_of_int $5) ;
        try
          let algorithm = Dnskey.int_to_algorithm $7 in
-         if String.length $9 > max_rdata_length - 4 then
+         let key_string = String.concat "" $9 in
+         if String.length key_string > max_rdata_length - 4 then
            parse_error "DNSKEY exceeds maximum rdata size";
          let flags = Dnskey.decode_flags $3 in
-         let dnskey = { Dnskey.flags ; algorithm ; key = Cstruct.of_string $9 } in
+         let dnskey = { Dnskey.flags ; algorithm ; key = Cstruct.of_string key_string } in
          B (Dnskey, (0l, Rr_map.Dnskey_set.singleton dnskey))
        with
        | Invalid_argument err -> parse_error err
      }
- | TYPE_RRSIG s charstring s int8 s int8 s int32 s int32 s int32 s int8 s domain s charstring
+ | TYPE_RRSIG s charstring s int8 s int8 s int32 s charstring s charstring s int16 s domain s charstrings
      { 
-       (* TODO algorithm mnemonics, time strings *)
+       (* TODO algorithm mnemonics *)
        let (K type_covered_from_string) = match Rr_map.of_string $3 with
          | Ok t -> t
          | Error (`Msg e) -> parse_error e
@@ -213,13 +213,13 @@ generic_type s generic_rdata {
        let algorithm = Dnskey.int_to_algorithm $5 in
        let signature_expiration = match Rrsig.timestamp_parse $11 with
          | Ok t -> t
-         | Error (`Malformed (_, e)) -> parse_error e
+         | Error e -> parse_error e
        in
        let signature_inception = match Rrsig.timestamp_parse $13 with
          | Ok t -> t
-         | Error (`Malformed (_, e)) -> parse_error e
+         | Error e -> parse_error e
        in
-       let signature = Cstruct.of_string $19 in
+       let signature = Cstruct.of_string (String.concat "" $19) in
        let rrsig = { Rrsig.type_covered ; algorithm ; label_count=$7 ; original_ttl=$9 ; 
          signature_expiration ; signature_inception ; key_tag=$15 ; signer_name=$17 ; signature
        } in

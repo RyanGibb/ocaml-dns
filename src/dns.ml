@@ -929,7 +929,29 @@ module Rrsig = struct
     signature : Cstruct.t
   }
 
-  let timestamp_parse time = Ptime_extra.of_int64 (Int64.of_int32 time)
+  (* RFC 4034 section 3.2 *)
+  let timestamp_parse s =
+    match String.length s with
+    (* YYYYMMDDHHmmSS *)
+    | 14 ->
+      let y = int_of_string (String.sub s 0 4) in
+      let m = int_of_string (String.sub s 4 2) in
+      let d = int_of_string (String.sub s 6 2) in
+      let h = int_of_string (String.sub s 8 2) in
+      let min = int_of_string (String.sub s 10 2) in
+      let sec = int_of_string (String.sub s 12 2) in
+      let date = (y, m, d) in
+      let time = ((h, min, sec), 0) in
+      (match Ptime.of_date_time (date, time) with
+        | Some t -> Ok t
+        | None -> Error (Fmt.str "Couldn't parse %s" s)
+      )
+    (* seconds since epoch *)
+    | 10 -> (match Ptime_extra.of_int64 (Int64.of_string s) with
+      | Ok t -> Ok t
+      | Error (`Malformed (_, e)) -> Error e
+    )
+    | l -> Error (Fmt.str "Invalid length of timestamp: %d" l)
 
   let canonical t =
     { t with signer_name = Domain_name.canonical t.signer_name }
