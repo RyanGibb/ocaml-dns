@@ -397,6 +397,8 @@ module Rrsig : sig
   }
   (** The type of a RRSIG. *)
 
+  val timestamp_parse : int32 -> (Ptime.t, [> `Malformed of int * string ]) result  
+
   val pp : t Fmt.t
   (** [pp ppf t] pretty-prints the RRSIG. *)
 

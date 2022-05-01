@@ -929,6 +929,8 @@ module Rrsig = struct
     signature : Cstruct.t
   }
 
+  let timestamp_parse time = Ptime_extra.of_int64 (Int64.of_int32 time)
+
   let canonical t =
     { t with signer_name = Domain_name.canonical t.signer_name }
 

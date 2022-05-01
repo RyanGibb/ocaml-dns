@@ -75,10 +75,13 @@ let add_to_map name ~ttl (Rr_map.B (k, v)) =
 %token <string> TYPE_AAAA
 %token <string> TYPE_SRV
 %token <string> TYPE_CAA
+%token <string> TYPE_DS
 %token <string> TYPE_DNSKEY
+%token <string> TYPE_RRSIG
+%token <string> TYPE_NSEC
+%token <string> TYPE_NSEC3
 %token <string> TYPE_TLSA
 %token <string> TYPE_SSHFP
-%token <string> TYPE_DS
 %token <string> TYPE_GENERIC
 
 %token <string> CLASS_IN
@@ -172,6 +175,7 @@ generic_type s generic_rdata {
        with
        | Invalid_argument err -> parse_error err
      }
+ | TYPE_AAAA s ipv6 { B (Aaaa, (0l, Ipaddr.V6.Set.singleton $3)) }
  | TYPE_DS s int16 s int8 s int8 s hex
      { try
          let key_tag = $3
@@ -185,7 +189,6 @@ generic_type s generic_rdata {
        with
        | Invalid_argument err -> parse_error err
      }
- | TYPE_AAAA s ipv6 { B (Aaaa, (0l, Ipaddr.V6.Set.singleton $3)) }
  | TYPE_DNSKEY s int16 s int8 s int8 s charstring
      { if not ($5 = 3) then
          parse_error ("DNSKEY protocol is not 3, but " ^ string_of_int $5) ;
@@ -199,6 +202,39 @@ generic_type s generic_rdata {
        with
        | Invalid_argument err -> parse_error err
      }
+ | TYPE_RRSIG s charstring s int8 s int8 s int32 s int32 s int32 s int8 s domain s charstring
+     { 
+       (* TODO algorithm mnemonics, time strings *)
+       let (K type_covered_from_string) = match Rr_map.of_string $3 with
+         | Ok t -> t
+         | Error (`Msg e) -> parse_error e
+       in
+       let type_covered = Rr_map.to_int type_covered_from_string in
+       let algorithm = Dnskey.int_to_algorithm $5 in
+       let signature_expiration = match Rrsig.timestamp_parse $11 with
+         | Ok t -> t
+         | Error (`Malformed (_, e)) -> parse_error e
+       in
+       let signature_inception = match Rrsig.timestamp_parse $13 with
+         | Ok t -> t
+         | Error (`Malformed (_, e)) -> parse_error e
+       in
+       let signature = Cstruct.of_string $19 in
+       let rrsig = { Rrsig.type_covered ; algorithm ; label_count=$7 ; original_ttl=$9 ; 
+         signature_expiration ; signature_inception ; key_tag=$15 ; signer_name=$17 ; signature
+       } in
+       B (Rrsig, (0l, Rr_map.Rrsig_set.singleton rrsig))
+    }
+//  | TYPE_NSEC s domain s ...
+//      {
+//        let nsec = { Nsec... } in
+//        B (Nsec, (0l, Rr_map.Nsec_set.singleton nsec))
+//      }
+//  | TYPE_NSEC3 s int16 s int8 s int8 s charstring
+//      {
+//        let nsec3 = { Nsec3... } in
+//        B (Nsec3, (0l, Rr_map.Nsec3_set.singleton nsec3))
+//      }
  | TYPE_CAA s int8 s charstring s charstrings
      { let critical = if $3 = 0x80 then true else false in
        if String.length $5 <= 0 || String.length $5 >= 16 then

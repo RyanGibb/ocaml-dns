@@ -38,11 +38,14 @@ let kw_or_cs s = match (String.uppercase_ascii s) with
   | "TXT" -> TYPE_TXT s
   | "AAAA" -> TYPE_AAAA s
   | "SRV" -> TYPE_SRV s
-  | "DNSKEY" -> TYPE_DNSKEY s
   | "CAA" -> TYPE_CAA s
   | "TLSA" -> TYPE_TLSA s
   | "SSHFP" -> TYPE_SSHFP s
   | "DS" -> TYPE_DS s
+  | "DNSKEY" -> TYPE_DNSKEY s
+  | "RRSIG" -> TYPE_RRSIG s
+  | "NSEC" -> TYPE_NSEC s
+  | "NSEC3" -> TYPE_NSEC3 s
   | "IN" -> CLASS_IN s
   | "CS" -> CLASS_CS s
   | "CH" -> CLASS_CH s
