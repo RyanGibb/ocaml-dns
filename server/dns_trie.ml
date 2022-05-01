@@ -264,6 +264,7 @@ let check trie =
         end
       | Some _ -> `Soa name
     in
+    (* TODO exclude RRSIGs from CNAME check *)
     let* () =
       guard ((Rr_map.mem Cname map && Rr_map.cardinal map = 1) ||
              not (Rr_map.mem Cname map)) (`Cname_other name)
