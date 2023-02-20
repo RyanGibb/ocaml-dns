@@ -13,6 +13,8 @@
           ocaml-lsp-server = "*";
           ocamlformat = "*";
           alcotest = "*";
+          utop = "*";
+          ocaml-base-compiler = "*";
         };
         scope = on.buildOpamProject' { } ./. devPackagesQuery;
         devPackages = builtins.attrValues
